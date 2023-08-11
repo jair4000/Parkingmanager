@@ -6,7 +6,9 @@ import com.example.parkingmanager.dto.TransactionInDTO;
 import com.example.parkingmanager.dto.TransactionOutDTO;
 import com.example.parkingmanager.service.TransactionService;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -21,7 +23,7 @@ public class TransactionRest {
     TransactionService transactionService;
 
     @PostMapping("/newParking")
-    public Response newParking(@RequestBody TransactionInDTO transactionInDTO)  {
+    public Response newParking(@RequestBody @Valid TransactionInDTO transactionInDTO)  {
         try {
             transactionService.sendNewParkingTransactions(transactionInDTO);
             return new Response(200, Constants.REQUEST_SUCCESS_MESSAGE);
@@ -31,12 +33,12 @@ public class TransactionRest {
     }
 
     @PostMapping("/finishParking")
-    public Response finishParking(@RequestBody TransactionInDTO transactionInDTO) {
+    public Response finishParking(@RequestBody @Valid TransactionInDTO transactionInDTO) {
         try {
             transactionService.sendFinishedParkingTransactions(transactionInDTO);
-            return new Response(200,Constants.REQUEST_SUCCESS_MESSAGE);
+            return new Response(200, Constants.REQUEST_SUCCESS_MESSAGE);
         } catch (Exception e) {
-            return new Response(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,"Ocurrio un error",e.getMessage());
+            return new Response(500,"Ocurrio un error",e.getMessage());
         }
     }
 
