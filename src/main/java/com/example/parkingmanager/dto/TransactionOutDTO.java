@@ -8,6 +8,16 @@ public class TransactionOutDTO {
 
     private Double avgStayedTime;
 
+    private String trasactionId;
+
+    public String getTrasactionId() {
+        return trasactionId;
+    }
+
+    public void setTrasactionId(String trasactionId) {
+        this.trasactionId = trasactionId;
+    }
+
     public String getVehicleType() {
         return vehicleType;
     }

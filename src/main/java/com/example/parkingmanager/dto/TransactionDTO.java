@@ -11,13 +11,33 @@ public class TransactionDTO {
     private Date finishDate;
     private Integer vehicleType;
     private Integer status;
-    private Long stayedTime;
+    private Double stayedTime;
 
-    public Long getStayedTime() {
+    private String isAvgSynchronized;
+
+    private String isLongestsynchronized;
+
+    public String getIsAvgSynchronized() {
+        return isAvgSynchronized;
+    }
+
+    public void setIsAvgSynchronized(String isAvgSynchronized) {
+        this.isAvgSynchronized = isAvgSynchronized;
+    }
+
+    public String getIsLongestsynchronized() {
+        return isLongestsynchronized;
+    }
+
+    public void setIsLongestsynchronized(String isLongestsynchronized) {
+        this.isLongestsynchronized = isLongestsynchronized;
+    }
+
+    public Double getStayedTime() {
         return stayedTime;
     }
 
-    public void setStayedTime(Long stayedTime) {
+    public void setStayedTime(Double stayedTime) {
         this.stayedTime = stayedTime;
     }
 

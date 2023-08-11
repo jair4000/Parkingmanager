@@ -56,10 +56,10 @@ public class TransactionServiceTest {
     public void testFindLongestStayedVehicle() throws Exception {
 
         List<Transaction> vehicles = new ArrayList<>();
-        vehicles.add(new Transaction("ABC123", 120l));
-        vehicles.add(new Transaction("XAP512", 180l));
-        vehicles.add(new Transaction("LDSR123", 140l));
-        vehicles.add(new Transaction("AFQ32F", 90l));
+        vehicles.add(new Transaction("ABC123", 120.0));
+        vehicles.add(new Transaction("XAP512", 180.0));
+        vehicles.add(new Transaction("LDSR123", 140.0));
+        vehicles.add(new Transaction("AFQ32F", 90.0));
 
 
         when( (List<Transaction>)  parkingmanagerRepository.findAll()).thenReturn(vehicles);
@@ -85,10 +85,10 @@ public class TransactionServiceTest {
     @Test
     public void testCalculateAverageStayedTime() throws Exception {
         List<Transaction> vehicles = new ArrayList<>();
-        vehicles.add(new Transaction("ABC123",1, 120l));
-        vehicles.add(new Transaction("XAP512",2, 180l));
-        vehicles.add(new Transaction("LDSR123", 2,150l));
-        vehicles.add(new Transaction("AFQ32F",1, 90l));
+        vehicles.add(new Transaction("ABC123",1, 120.0));
+        vehicles.add(new Transaction("XAP512",2, 180.0));
+        vehicles.add(new Transaction("LDSR123", 2, 150.0));
+        vehicles.add(new Transaction("AFQ32F",1, 90.0));
 
         when( (List<Transaction>) parkingmanagerRepository.findAll()).thenReturn(vehicles);
 
@@ -138,7 +138,7 @@ public class TransactionServiceTest {
         Date beginDate = new Date(1631400000000L); // September 12, 2021, 12:00:00 (GMT)
         Date finishDate = new Date(1631407200000L); // September 12, 2021, 14:00:00 (GMT)
 
-        Long stayedTime = transactionService.getNewStayedTime(beginDate, finishDate);
+        Double stayedTime = transactionService.getNewStayedTime(beginDate, finishDate);
 
         assertEquals(120, stayedTime); // 120 minutes
     }
@@ -148,7 +148,7 @@ public class TransactionServiceTest {
 
         Date beginDate = new Date(1631400000000L); // September 12, 2021, 12:00:00 (GMT)
 
-        Long stayedTime = transactionService.getNewStayedTime(beginDate, beginDate);
+        Double stayedTime = transactionService.getNewStayedTime(beginDate, beginDate);
 
         assertEquals(0, stayedTime); // 0 minutes
     }

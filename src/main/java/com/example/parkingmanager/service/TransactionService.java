@@ -8,7 +8,11 @@ import com.example.parkingmanager.dto.TransactionInDTO;
 import com.example.parkingmanager.dto.TransactionOutDTO;
 import com.example.parkingmanager.enums.EnumTransactionStatus;
 import com.example.parkingmanager.enums.EnumVehicleType;
+import com.example.parkingmanager.model.AverageParking;
+import com.example.parkingmanager.model.LongestStayParking;
 import com.example.parkingmanager.model.Transaction;
+import com.example.parkingmanager.repository.ParkingAverageStayRepository;
+import com.example.parkingmanager.repository.ParkingTheLongestStayRepository;
 import com.example.parkingmanager.repository.ParkingmanagerRepository;
 import com.example.parkingmanager.utils.JSONUtils;
 import org.apache.logging.log4j.LogManager;
@@ -29,6 +33,12 @@ public class TransactionService {
 
     @Autowired
     ParkingmanagerRepository parkingmanagerRepository;
+
+    @Autowired
+    ParkingTheLongestStayRepository parkingTheLongestStayRepository;
+
+    @Autowired
+    ParkingAverageStayRepository parkingAverageStayRepository;
 
     public List<Message>  newParkingTransactions( List<Message> messages){
 
@@ -61,7 +71,9 @@ public class TransactionService {
             .beginDate(new Date())
             .transactionId("P-" + transactionDTO.getVehicleType() + transactionDTO.getPlate() + Instant.now())
             .finishDate(new Date())
-            .stayedTime(1l)
+            .stayedTime(1.0)
+             .isAvgSynchronized(Constants.NO)
+             .isLongestSynchronized(Constants.NO)
             .build();
     }
 
@@ -106,34 +118,34 @@ public class TransactionService {
         sqsService.sendMessage(JSONUtils.objectToJson(transactionInDTO), Constants.FINISH_TRANSACTION_PARKING_QUEUE);
     }
 
-    public Long getNewStayedTime(Date beginDate,  Date finishDate){
+    public Double getNewStayedTime(Date beginDate,  Date finishDate){
         // Calculate the time difference in milliseconds
         long timeDifferenceMillis = finishDate.getTime() - beginDate.getTime();
-        Long timeDifferenceMinutes = timeDifferenceMillis / (1000 * 60);
+        Double timeDifferenceMinutes = (double) (timeDifferenceMillis / (1000 * 60));
         return timeDifferenceMinutes;
     }
 
     public  List<TransactionOutDTO> averageStayedTime() throws Exception {
 
-        Map<String, Long> totalStayedTimeByType = new HashMap<>();
+        Map<String, Double> totalStayedTimeByType = new HashMap<>();
         Map<String, Integer> vehicleCountByType = new HashMap<>();
         List<TransactionOutDTO> transactionOutDTOList = new ArrayList<>();
 
         try{
 
-            List<Transaction> transactionList = (List<Transaction>) parkingmanagerRepository.findAll();
+            List<Transaction> transactionList = (List<Transaction>) parkingmanagerRepository.findAllByIsAvgSynchronized(Constants.NO);
 
             // Calculate total stayed time and vehicle count by kind
             for (Transaction transaction : transactionList) {
                 String vehicleType = transaction.getVehicleType().toString();
-                totalStayedTimeByType.put(vehicleType, totalStayedTimeByType.getOrDefault(vehicleType, 0L) + transaction.getStayedTime());
+                totalStayedTimeByType.put(vehicleType, totalStayedTimeByType.getOrDefault(vehicleType, 0.0) + transaction.getStayedTime());
                 vehicleCountByType.put(vehicleType, vehicleCountByType.getOrDefault(vehicleType, 0) + 1);
             }
 
             // Calculate average stayed time by type
-            for (Map.Entry<String, Long> entry : totalStayedTimeByType.entrySet()) {
+            for (Map.Entry<String, Double> entry : totalStayedTimeByType.entrySet()) {
                 String vehicleType = entry.getKey();
-                long totalStayedTime = entry.getValue();
+                Double totalStayedTime = entry.getValue();
                 int vehicleCount = vehicleCountByType.get(vehicleType);
                 double averageStayedTime = (double) totalStayedTime / vehicleCount;
 
@@ -141,6 +153,7 @@ public class TransactionService {
                 transactionOutDTO.setVehicleType(getVehicleTypeName(Integer.parseInt(vehicleType)));
                 transactionOutDTO.setAvgStayedTime(averageStayedTime);
                 transactionOutDTOList.add(transactionOutDTO);
+                updateCheckedAverageParkingTransactions(transactionList);
             }
         }catch (Exception e){
           throw new Exception(e.getMessage());
@@ -158,15 +171,16 @@ public class TransactionService {
     }
 
     public TransactionOutDTO longestStayedTime() throws Exception {
-
+        logger.info("########## empieza tarea automatica indentificar vehiculo mas tiempo en parqueadero");
         TransactionOutDTO transactionOutDTO = new TransactionOutDTO();
         try{
 
-            List<Transaction> transactionList = (List<Transaction>) parkingmanagerRepository.findAll();
+            List<Transaction> transactionList = (List<Transaction>) parkingmanagerRepository.findAllByIsLongestSynchronized(Constants.NO);
 
 
         if (transactionList.isEmpty()) {
-            return null; // No vehicles in the list
+            logger.info("########## no se encontraron nuevos vehiculos");
+            return new TransactionOutDTO(); // No vehicles in the list
         }
 
         Transaction longestStayedVehicle = transactionList.get(0);
@@ -176,11 +190,116 @@ public class TransactionService {
                     longestStayedVehicle = vehicle;
                 }
         }
-        transactionOutDTO.setPlate(longestStayedVehicle.getPlate());
+            transactionOutDTO.setPlate(longestStayedVehicle.getPlate());
+            transactionOutDTO.setTrasactionId(longestStayedVehicle.getTransactionId());
+            transactionOutDTO.setAvgStayedTime(longestStayedVehicle.getStayedTime());
+            updateCheckedLongestStayParkingTransactions(transactionList);
+
+            logger.info("########## finaliza tarea, con vehiculo {}", longestStayedVehicle.getPlate());
         }catch (Exception e){
+            logger.error("An exception occurred: " + e.getMessage());
             throw new Exception(e.getMessage());
         }
         return transactionOutDTO;
     }
+
+    public void updateCheckedLongestStayParkingTransactions(List<Transaction> transactionList ){
+        logger.info("########## se actualiza estado de vehiculos ya evaluados para permanencia");
+        for(Transaction transaction: transactionList){
+            transaction.setIsLongestSynchronized(Constants.YES);
+            parkingmanagerRepository.save(transaction);
+        }
+    }
+
+    public void updateCheckedAverageParkingTransactions(List<Transaction> transactionList){
+        logger.info("########## se actualiza estado de vehiculos ya evaluados para promedio");
+        for(Transaction transaction: transactionList){
+            transaction.setIsAvgSynchronized(Constants.YES);
+            parkingmanagerRepository.save(transaction);
+        }
+    }
+
+    public void  updateLongestStayParking() throws Exception {
+        TransactionOutDTO transactionOutDTO =  longestStayedTime();
+
+        if(transactionOutDTO.getAvgStayedTime() != null) {
+            List<LongestStayParking> longestStayParkingList = (List<LongestStayParking>) parkingTheLongestStayRepository.findAll();
+            if(longestStayParkingList.isEmpty()){
+                LongestStayParking longestStayParking = new LongestStayParking();
+                longestStayParking.setPlate(transactionOutDTO.getPlate());
+                longestStayParking.setTransactionId("L-" + Instant.now());
+                longestStayParking.setAvgStayedTime(transactionOutDTO.getAvgStayedTime());
+                parkingTheLongestStayRepository.save(longestStayParking);
+            }else if (transactionOutDTO.getAvgStayedTime() > longestStayParkingList.get(0).getAvgStayedTime()) {
+                parkingTheLongestStayRepository.deleteAll();
+                LongestStayParking longestStayParking = new LongestStayParking();
+                longestStayParking.setPlate(transactionOutDTO.getPlate());
+                longestStayParking.setTransactionId("L-" + Instant.now());
+                longestStayParking.setAvgStayedTime(transactionOutDTO.getAvgStayedTime());
+                parkingTheLongestStayRepository.save(longestStayParking);
+            }
+        }
+    }
+
+    public void updateAverageParking() throws Exception {
+
+        List<TransactionOutDTO> transactionOutDTOList = averageStayedTime();
+
+        if (transactionOutDTOList.isEmpty()) {
+            logger.info("######### no hay promedios para actualizar.");
+        } else {
+            List<AverageParking> existingParkingAverages = (List<AverageParking>) parkingAverageStayRepository.findAll();
+
+            // Map existing averages by vehicle type
+            Map<String, AverageParking> vehicleTypeToAverageMap = new HashMap<>();
+            for (AverageParking existingAverage : existingParkingAverages) {
+                vehicleTypeToAverageMap.put(existingAverage.getVehicleType(), existingAverage);
+            }
+
+            // Update or add new rows for vehicle types
+            for (TransactionOutDTO transactionOutDTO : transactionOutDTOList) {
+                String vehicleType = transactionOutDTO.getVehicleType();
+                double newAvgStayedTime = transactionOutDTO.getAvgStayedTime();
+
+                if (vehicleTypeToAverageMap.containsKey(vehicleType)) {
+                    AverageParking existingAverage = vehicleTypeToAverageMap.get(vehicleType);
+                    double existingAvgStayedTime = existingAverage.getAvgStayedTime();
+                    existingAverage.setAvgStayedTime(existingAvgStayedTime + newAvgStayedTime);
+                    parkingAverageStayRepository.save(existingAverage);
+                } else {
+                    AverageParking newAverageParking = new AverageParking();
+                    newAverageParking.setVehicleType(vehicleType);
+                    newAverageParking.setAvgStayedTime(newAvgStayedTime);
+                    parkingAverageStayRepository.save(newAverageParking);
+                    vehicleTypeToAverageMap.put(vehicleType, newAverageParking);
+                }
+            }
+
+            logger.info("########## promedios actualizados");
+        }
+
+    }
+
+    public TransactionOutDTO getLongestStayedTime(){
+        TransactionOutDTO transactionOutDTO = new TransactionOutDTO();
+        List<LongestStayParking> longestStayParking =  (List<LongestStayParking>) parkingTheLongestStayRepository.findAll();
+        transactionOutDTO.setPlate(longestStayParking.get(0).getPlate());
+        return transactionOutDTO;
+    }
+
+    public List<TransactionOutDTO> getAverageStayedTime() {
+        List<TransactionOutDTO> transactionOutDTOList = new ArrayList<>();
+        List<AverageParking> averageParkingList = (List<AverageParking>) parkingAverageStayRepository.findAll();
+
+        for (AverageParking avg : averageParkingList) {
+            TransactionOutDTO transactionOutDTO = new TransactionOutDTO();
+            transactionOutDTO.setAvgStayedTime(avg.getAvgStayedTime());
+            transactionOutDTO.setVehicleType(avg.getVehicleType());
+            transactionOutDTOList.add(transactionOutDTO);
+        }
+
+        return transactionOutDTOList;
+    }
+
 
 }

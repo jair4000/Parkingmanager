@@ -12,4 +12,12 @@ import java.util.List;
 public interface ParkingmanagerRepository extends CrudRepository<Transaction, String> {
     Transaction findByPlateAndStatus(String plate, Integer status);
 
+    List<Transaction> findAllByIsAvgSynchronized(String isSynchronized);
+
+    List<Transaction> findAllByIsLongestSynchronized(String isSynchronized);
+
+    Transaction findByTransactionId(String transactionId);
+
+    Transaction findByPlate(String plate);
+
 }

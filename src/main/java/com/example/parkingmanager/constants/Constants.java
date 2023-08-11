@@ -13,4 +13,8 @@ public class Constants {
     public static final String REQUEST_ERROR_CODE = "001";
     public static final String EXCEPTION_CODE = "002";
 
+    public static final String YES = "Y";
+
+    public static final String NO = "N";
+
 }

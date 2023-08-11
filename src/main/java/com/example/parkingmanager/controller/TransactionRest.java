@@ -45,7 +45,7 @@ public class TransactionRest {
     @PostMapping("/getAverageStayedTime")
     public Response<List<TransactionOutDTO>> getAverageStayedTime() {
         try {
-            List<TransactionOutDTO> transactionOutDTO = transactionService.averageStayedTime();
+            List<TransactionOutDTO> transactionOutDTO = transactionService.getAverageStayedTime();
             return new Response(transactionOutDTO);
         } catch (Exception e) {
             return new Response(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,"Ocurrio un error",e.getMessage());
@@ -55,12 +55,13 @@ public class TransactionRest {
     @PostMapping("/getLongestStayedTime")
     public Response<TransactionOutDTO> getLongestStayedTime() {
         try {
-            TransactionOutDTO transactionOutDTO =  transactionService.longestStayedTime();
+            TransactionOutDTO transactionOutDTO =  transactionService.getLongestStayedTime();
             return new Response(transactionOutDTO);
         } catch (Exception e) {
             return new Response(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,"Ocurrio un error",e.getMessage());
         }
     }
+
 
 
 

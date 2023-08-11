@@ -12,6 +12,8 @@ import java.util.Date;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Setter
+@Getter
 @DynamoDBTable(tableName = "ParkingmanagerTransactionCollection")
 public class Transaction {
 
@@ -30,14 +32,19 @@ public class Transaction {
     @DynamoDBAttribute(attributeName = "status")
     private Integer status;
     @DynamoDBAttribute(attributeName = "stayedTime")
-    private Long stayedTime;
+    private Double stayedTime;
+    @DynamoDBAttribute(attributeName = "isAvgSynchronized")
+    private String isAvgSynchronized;
 
-    public Transaction(String plate, Long stayedTime) {
+    @DynamoDBAttribute(attributeName = "isLongestSynchronized")
+    private String isLongestSynchronized;
+
+    public Transaction(String plate, Double stayedTime) {
         this.plate = plate;
         this.stayedTime = stayedTime;
     }
 
-    public Transaction(String plate, Integer vehicleType, Long stayedTime) {
+    public Transaction(String plate, Integer vehicleType, Double stayedTime) {
         this.plate = plate;
         this.vehicleType = vehicleType;
         this.stayedTime = stayedTime;
