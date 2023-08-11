@@ -36,7 +36,7 @@ public class TransactionService {
             for (Message message : messages) {
                 try {
                     TransactionDTO transactionDTO = Optional.ofNullable(JSONUtils.jsonToObject(message.getBody(), TransactionDTO.class)).orElseThrow(() -> new ClassCastException("no es posible castear el mensaje"));
-                    Transaction existingTransaction = parkingmanagerRepository.findByPlateAndStatus(transactionDTO.getPlate(), EnumTransactionStatus.STARTED.getId());
+                    Transaction existingTransaction = parkingmanagerRepository.findByPlateAndStatus(transactionDTO.getPlate().toUpperCase(), EnumTransactionStatus.STARTED.getId());
                     if (existingTransaction == null) {
                         Transaction transaction = messageToTransactionDTO(transactionDTO);
                         parkingmanagerRepository.save(transaction);
