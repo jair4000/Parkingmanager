@@ -56,7 +56,7 @@ public class TransactionService {
     public Transaction messageToTransactionDTO (TransactionDTO transactionDTO){
      return Transaction.builder()
             .plate(transactionDTO.getPlate().toUpperCase())
-            .vehicleType(transactionDTO.getVehicleType())
+            .vehicleType(checkVehicleType(transactionDTO.getVehicleType()))
             .status(EnumTransactionStatus.STARTED.getId())
             .beginDate(new Date())
             .transactionId("P-" + transactionDTO.getVehicleType() + transactionDTO.getPlate() + Instant.now())
@@ -64,6 +64,15 @@ public class TransactionService {
             .stayedTime(1l)
             .build();
     }
+
+    public Integer checkVehicleType(Integer vehicleType) {
+        if (vehicleType > 3 || vehicleType <= 0) {
+        return EnumVehicleType.OTRO.getId();
+        } else {
+            return vehicleType;
+        }
+    }
+
 
     public  List<Message> finishParkingTransactions(List<Message> messages){
 
